@@ -315,7 +315,7 @@ local function create_menu(opt)
     end,
   })
 
-  --delele buffers by mark
+  --delete buffers by mark
   nvim_buf_set_keymap(bufnr, 'n', opt.delete, '', {
     noremap = true,
     nowait = true,
@@ -349,6 +349,9 @@ local function create_menu(opt)
         gen_highlight()
         api.nvim_win_set_config(winid, { height = #content })
       end
+      -- refresh the window
+      fb.toggle()
+      fb.toggle()
     end,
   })
 
