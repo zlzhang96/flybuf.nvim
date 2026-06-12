@@ -317,31 +317,19 @@ local function create_menu(opt)
       wipes[row] = true
     end
 
-    for index, _ in pairs(wipes or {}) do
-      api.nvim_buf_call(buffers[index].bufnr, function()
-        api.nvim_buf_delete(buffers[index].bufnr, { force = true })
-      end)
-      table.remove(content, index)
-      table.remove(hi, index)
-    end
-
     local indexs = vim.tbl_keys(wipes)
-    buffers = flattern_tbl(buffers, indexs)
-    content = flattern_tbl(content, indexs)
-    hi = flattern_tbl(hi, indexs)
-
-    wipes = {}
-    vim.bo[bufnr].modifiable = true
-    if #content == 0 then
-      api.nvim_win_close(winid, true)
-    else
-      api.nvim_buf_set_lines(bufnr, 0, -1, false, content)
-      vim.bo[bufnr].modifiable = false
-      gen_highlight()
-      api.nvim_win_set_config(winid, { height = #content })
+    local to_delete = {}
+    for index, _ in pairs(wipes) do
+      to_delete[#to_delete + 1] = buffers[index].bufnr
     end
-    -- refresh the window
-    fb.toggle()
+
+    vim.schedule(function()
+      for _, bufnr_to_del in ipairs(to_delete) do
+        pcall(api.nvim_buf_delete, bufnr_to_del, { force = true })
+      end
+      -- refresh the window
+      fb.toggle()
+    end)
   end, { buffer = bufnr, nowait = true })
 
   vim.keymap.set('n', opt.quit, function()
