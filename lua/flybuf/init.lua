@@ -11,6 +11,9 @@ local function fname_path(buf)
     return '[No Name]'
   end
   local parts = vim.split(fname, sep)
+  if #parts <= 1 then
+    return fname
+  end
   return table.concat(parts, sep, #parts - 1, #parts)
 end
 
