@@ -349,9 +349,6 @@ local function create_menu(opt)
         gen_highlight()
         api.nvim_win_set_config(winid, { height = #content })
       end
-      -- refresh the window
-      fb.toggle()
-      fb.toggle()
     end,
   })
 
