@@ -1,5 +1,4 @@
 local api, fn = vim.api, vim.fn
-local nvim_buf_set_keymap = api.nvim_buf_set_keymap
 local fb = {}
 
 local function fname_path(buf)
@@ -279,86 +278,72 @@ local function create_menu(opt)
   gen_highlight()
 
   for _, item in ipairs(keys) do
-    nvim_buf_set_keymap(bufnr, 'n', item[1], '', {
-      noremap = true,
-      nowait = true,
-      callback = function()
-        local buf = buffers[item[2]].bufnr
-        api.nvim_win_close(winid, true)
-        api.nvim_win_set_buf(0, buf)
-      end,
-    })
+    vim.keymap.set('n', item[1], function()
+      local buf = buffers[item[2]].bufnr
+      api.nvim_win_close(winid, true)
+      api.nvim_win_set_buf(0, buf)
+    end, { buffer = bufnr, nowait = true })
   end
 
   local wipes = {}
-  nvim_buf_set_keymap(bufnr, 'n', opt.mark, '', {
-    noremap = true,
-    nowait = true,
-    callback = function()
-      local index = api.nvim_win_get_cursor(winid)[1]
-      local start, _end = unpack(hi[index][5])
-      if not vim.tbl_contains(vim.tbl_keys(wipes), index) then
-        local id = api.nvim_buf_set_extmark(bufnr, ns, index - 1, start, {
-          end_col = _end,
-          hl_group = 'FlyBufSelect',
-        })
-        wipes[index] = id
-      else
-        local id = wipes[index]
-        api.nvim_buf_del_extmark(bufnr, ns, id)
-        api.nvim_buf_set_extmark(bufnr, ns, index - 1, start, {
-          end_col = _end,
-          hl_group = 'FlyBufName',
-        })
-        wipes[index] = nil
-      end
-    end,
-  })
+  vim.keymap.set('n', opt.mark, function()
+    local index = api.nvim_win_get_cursor(winid)[1]
+    local start, _end = unpack(hi[index][5])
+    if not vim.tbl_contains(vim.tbl_keys(wipes), index) then
+      local id = api.nvim_buf_set_extmark(bufnr, ns, index - 1, start, {
+        end_col = _end,
+        hl_group = 'FlyBufSelect',
+      })
+      wipes[index] = id
+    else
+      local id = wipes[index]
+      api.nvim_buf_del_extmark(bufnr, ns, id)
+      api.nvim_buf_set_extmark(bufnr, ns, index - 1, start, {
+        end_col = _end,
+        hl_group = 'FlyBufName',
+      })
+      wipes[index] = nil
+    end
+  end, { buffer = bufnr, nowait = true })
 
   --delete buffers by mark
-  nvim_buf_set_keymap(bufnr, 'n', opt.delete, '', {
-    noremap = true,
-    nowait = true,
-    callback = function()
-      local content = api.nvim_buf_get_lines(bufnr, 0, -1, false)
-      if not wipes or #wipes == 0 then
-        local row = api.nvim_win_get_cursor(winid)[1]
-        wipes[row] = true
-      end
+  vim.keymap.set('n', opt.delete, function()
+    local content = api.nvim_buf_get_lines(bufnr, 0, -1, false)
+    if not wipes or #wipes == 0 then
+      local row = api.nvim_win_get_cursor(winid)[1]
+      wipes[row] = true
+    end
 
-      for index, _ in pairs(wipes or {}) do
-        api.nvim_buf_call(buffers[index].bufnr, function()
-          api.nvim_buf_delete(buffers[index].bufnr, { force = true })
-        end)
-        table.remove(content, index)
-        table.remove(hi, index)
-      end
+    for index, _ in pairs(wipes or {}) do
+      api.nvim_buf_call(buffers[index].bufnr, function()
+        api.nvim_buf_delete(buffers[index].bufnr, { force = true })
+      end)
+      table.remove(content, index)
+      table.remove(hi, index)
+    end
 
-      local indexs = vim.tbl_keys(wipes)
-      buffers = flattern_tbl(buffers, indexs)
-      content = flattern_tbl(content, indexs)
-      hi = flattern_tbl(hi, indexs)
+    local indexs = vim.tbl_keys(wipes)
+    buffers = flattern_tbl(buffers, indexs)
+    content = flattern_tbl(content, indexs)
+    hi = flattern_tbl(hi, indexs)
 
-      wipes = {}
-      vim.bo[bufnr].modifiable = true
-      if #content == 0 then
-        api.nvim_win_close(winid, true)
-      else
-        api.nvim_buf_set_lines(bufnr, 0, -1, false, content)
-        vim.bo[bufnr].modifiable = false
-        gen_highlight()
-        api.nvim_win_set_config(winid, { height = #content })
-      end
-    end,
-  })
-
-  nvim_buf_set_keymap(bufnr, 'n', opt.quit, '', {
-    noremap = true,
-    nowait = true,
-    callback = function()
+    wipes = {}
+    vim.bo[bufnr].modifiable = true
+    if #content == 0 then
       api.nvim_win_close(winid, true)
-    end,
-  })
+    else
+      api.nvim_buf_set_lines(bufnr, 0, -1, false, content)
+      vim.bo[bufnr].modifiable = false
+      gen_highlight()
+      api.nvim_win_set_config(winid, { height = #content })
+    end
+    -- refresh the window
+    fb.toggle()
+  end, { buffer = bufnr, nowait = true })
+
+  vim.keymap.set('n', opt.quit, function()
+    api.nvim_win_close(winid, true)
+  end, { buffer = bufnr, nowait = true })
 
   api.nvim_create_autocmd('CursorMoved', {
     buffer = bufnr,

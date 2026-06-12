@@ -28,11 +28,6 @@ nvim_set_hl(0, 'FlyBufCount', {
   default = true,
 })
 
-nvim_set_hl(0, 'FlyBufCount', {
-  link = 'KeyWord',
-  default = true,
-})
-
 nvim_set_hl(0, 'FlyBufBracket', {
   link = 'Comment',
   default = true,
